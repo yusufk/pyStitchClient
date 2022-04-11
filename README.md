@@ -11,7 +11,7 @@ Usage:
 * Start the callback listener: python -m http.server 9000
 * Run: poetry install
 * Run: poetry run python pystitchclient/stitch.py
-* Copy and paste the returned URL into your browser
+* A browser window should open, complete the login process.
 * Copy and paste the callback code into the shell and hit enter
 
 [![asciicast](https://asciinema.org/a/z5Ag6afED73YQGob324HKebak.svg)](https://asciinema.org/a/z5Ag6afED73YQGob324HKebak)
