@@ -23,5 +23,5 @@ python python pystitchclient/stitch.py <token> to skip the steps to regenerate t
 The code will run few the steps of getting the required tokens and at some point will prompt for the access code from the user. This will need to be collected from the callback API (not yet implemented here).
 
 TODO:
-* Add code for callback listener using FastAPI 
+* Make the callback handler a little prettier 
 * Add token refresh logic

@@ -13,6 +13,10 @@ import json
 import collections
 import sys
 from datetime import datetime, timedelta
+import webbrowser
+import http.server
+import socketserver
+import threading
 
 # Enable logging
 if (settings.log_level == "DEBUG"):
@@ -176,9 +180,22 @@ def main():
     args = dict(zip(arg_names, sys.argv))
     Arg_list = collections.namedtuple('Arg_list', arg_names)
     args = Arg_list(*(args.get(arg, None) for arg in arg_names))
+    
+    #Run a local callback webserver in its own thread
+    PORT = 9000
+    Handler = http.server.SimpleHTTPRequestHandler
+    httpd = socketserver.TCPServer(("", PORT), Handler)
+    logging.info("serving at port", PORT)
+    thread = threading.Thread(target=httpd.serve_forever)
+    thread.daemon = True
+    thread.start()
+
+    #Initialise a stitch client
     stitch = Stitch(settings.stitch_client_id, settings.stitch_redirect_uri)
     if args.token is None:
         url, verifier = stitch.get_auth_url()
+        print("You will be directed to the following URL to get the auth code: " + url)
+        webbrowser.open(url, new=0, autoraise=True)
         code = input("Code:")
         token = stitch.get_token(settings.stitch_client_certificate, code)
     else:
