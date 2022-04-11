@@ -19,17 +19,16 @@ import socketserver
 import threading
 
 # Enable logging
-if (settings.log_level == "DEBUG"):
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                        level=logging.DEBUG)
-elif (settings.log_level == "INFO"):
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                        level=logging.INFO)
-else:
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                        level=logging.WARN)
-
 logger = logging.getLogger(__name__)
+if (settings.log_level == "DEBUG"):
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger.setLevel(logging.DEBUG)
+elif (settings.log_level == "INFO"):
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger.setLevel(logging.INFO)
+else:
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger.setLevel(logging.WARNING)
 
 class Stitch:
     def __init__(self, client_id, redirect_uri):
@@ -64,9 +63,9 @@ class Stitch:
 
     def generateVerifierChallengePair(self):
         verifier = self.generate_random_string(32)
-        logging.debug("Verifier: " + verifier.decode("utf-8"))
+        logger.debug("Verifier: " + verifier.decode("utf-8"))
         code_challenge = base64.urlsafe_b64encode(sha256(verifier).digest()).strip(b"=").replace(b"+", b"-").replace(b"/", b"_")
-        logging.debug("Code challenge: " + code_challenge.decode("utf-8"))
+        logger.debug("Code challenge: " + code_challenge.decode("utf-8"))
         return verifier.decode("utf-8") , code_challenge.decode("utf-8") 
 
     def generate_random_string(self, length):
@@ -74,20 +73,20 @@ class Stitch:
         return base64.urlsafe_b64encode(randomBytes).strip(b"=").replace(b"+", b"-").replace(b"/", b"_")
 
     def get_auth_url(self):
-        logging.debug("Generating auth URL")
+        logger.debug("Generating auth URL")
         self.code_verifier, self.code_challenge = self.generateVerifierChallengePair()
         full_auth_url = self.auth_url + "?client_id=" + self.client_id + "&scope=" + \
             urllib.parse.quote(self.scope) + "&response_type=" + self.response_type + \
                 "&redirect_uri=" + urllib.parse.quote_plus(self.redirect_uri) + "&state=" + self.state + \
                     "&nonce=" + self.nonce + "&code_challenge=" + self.code_challenge + \
                     "&code_challenge_method=" + self.code_challenge_method 
-        logging.debug("Auth URL: " + full_auth_url)
+        logger.debug("Auth URL: " + full_auth_url)
         return full_auth_url, self.code_verifier
     
     # Generate a JWT token from the client certificate
     def generate_jwt(self, client_certificate):
         # Generate a JWT token
-        logging.debug("Generating JWT token")
+        logger.debug("Generating JWT token")
         secret = open(client_certificate,"r").read()
         now = int(time.time())
         one_hour_from_now = now + 3600
@@ -101,15 +100,23 @@ class Stitch:
             'nbf': now,
             'jti': str(uuid.uuid4())
         }, key=secret, header = {'alg': 'RS256'})#algorithm='HS256')
-        logging.debug("JWT token: " + jwt_token.decode("utf-8"))
+        logger.debug("JWT token: " + jwt_token.decode("utf-8"))
         return jwt_token
+    
+    def decode_jwt(self, jwt_token):
+        # Decode the JWT token
+        logger.debug("Decoding JWT token")
+        secret = open(settings.client_certificate,"r").read()
+        decoded_token = jwt.decode(jwt_token, secret, algorithms=['RS256'])
+        logger.debug("Decoded JWT token: " + str(decoded_token))
+        return decoded_token
 
     def get_token(self, client_certificate, code):
         # Generate a JWT token
         jwt_token = self.generate_jwt(client_certificate)
 
         # Get the token
-        logging.debug("Getting token")
+        logger.debug("Getting token")
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -123,7 +130,7 @@ class Stitch:
             'client_assertion': jwt_token.decode("utf-8")
         }
         response = requests.post(self.token_url, headers=headers, data=data)
-        logging.debug("Token response: " + response.text)
+        logger.debug("Token response: " + response.text)
         if response.status_code == 200:
             self.token = response.json()["access_token"]
             self.refresh_token = response.json()["refresh_token"]
@@ -131,10 +138,10 @@ class Stitch:
             # Calculate the actual token expiration time
             self.token_expires_at = datetime.now() + timedelta(seconds=int(response.json()["expires_in"]))
             self.scope_granted = response.json()["scope"]
-            logging.debug("Token: " + self.token)
+            logger.debug("Token: " + self.token)
             return self.token
         else:
-            logging.error("Error getting token: " + response.text)
+            logger.error("Error getting token: " + response.text)
             return None
 
     def getAccountsAndBalances(self):
@@ -159,10 +166,10 @@ class Stitch:
 
     def runGraphQLQuery(self, query):
         if self.token is None:
-            logging.error("No token available")
+            logger.error("No token available")
             return None
         else:
-            logging.debug("Getting bank accounts")
+            logger.debug("Getting bank accounts")
             headers = {
                 'Authorization': 'Bearer ' + self.token,
                 'Content-Type': 'application/json'
@@ -172,7 +179,7 @@ class Stitch:
             if response.status_code == 200:
                 return response.json()
             else:
-                logging.error("Error getting bank accounts: " + response.text)
+                logger.error("Error getting bank accounts: " + response.text)
                 return None
        
 def main():
@@ -184,8 +191,10 @@ def main():
     #Run a local callback webserver in its own thread
     PORT = 9000
     Handler = http.server.SimpleHTTPRequestHandler
+    # Keep the web server quiet - comment out if you want to see the requests
+    Handler.log_message = lambda a, b, c, d, e: None
     httpd = socketserver.TCPServer(("", PORT), Handler)
-    logging.info("serving at port", PORT)
+    logger.info("serving at port", PORT)
     thread = threading.Thread(target=httpd.serve_forever)
     thread.daemon = True
     thread.start()
@@ -201,7 +210,8 @@ def main():
     else:
         token = args.token
         stitch.setToken(token)
-        logging.debug("Token: " + token)
+        logger.debug("Token: " + token)
+        logger.debug("JWT unpacked:" + stitch.decode_jwt(stitch.id_token))
     accounts = stitch.getAccountsAndBalances()
     logger.info("Accounts: " + str(accounts))
 
