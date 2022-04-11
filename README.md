@@ -14,6 +14,8 @@ Usage:
 * Copy and paste the returned URL into your browser
 * Copy and paste the callback code into the shell and hit enter
 
+[![asciicast](https://asciinema.org/a/Az6ejR0DSkSHONnZ69gPyrGPQ.svg)](https://asciinema.org/a/Az6ejR0DSkSHONnZ69gPyrGPQ)
+
 Hint: 
 If you've already succesfully generated a token and want to call teh API, you can use:
 python python pystitchclient/stitch.py <token> to skip the steps to regenerate the token.
