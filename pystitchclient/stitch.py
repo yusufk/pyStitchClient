@@ -10,6 +10,9 @@ import time
 import uuid
 import requests
 import json
+import collections
+import sys
+from datetime import datetime, timedelta
 
 # Enable logging
 if (settings.log_level == "DEBUG"):
@@ -38,6 +41,10 @@ class Stitch:
         self.code_challenge = None
         self.code_verifier = None
         self.token = None
+        self.id_token = None
+        self.refresh_token = None
+        self.token_expires_at = None
+        self.scope_granted = None
     
     def getState(self):
         return self.state
@@ -112,9 +119,15 @@ class Stitch:
             'client_assertion': jwt_token.decode("utf-8")
         }
         response = requests.post(self.token_url, headers=headers, data=data)
+        logging.debug("Token response: " + response.text)
         if response.status_code == 200:
-            self.token = response.json()
-            logging.debug("Token: " + self.token["access_token"])
+            self.token = response.json()["access_token"]
+            self.refresh_token = response.json()["refresh_token"]
+            self.id_token = response.json()["id_token"]
+            # Calculate the actual token expiration time
+            self.token_expires_at = datetime.now() + timedelta(seconds=int(response.json()["expires_in"]))
+            self.scope_granted = response.json()["scope"]
+            logging.debug("Token: " + self.token)
             return self.token
         else:
             logging.error("Error getting token: " + response.text)
@@ -159,11 +172,20 @@ class Stitch:
                 return None
        
 def main():
+    arg_names = ['command','token']
+    args = dict(zip(arg_names, sys.argv))
+    Arg_list = collections.namedtuple('Arg_list', arg_names)
+    args = Arg_list(*(args.get(arg, None) for arg in arg_names))
     stitch = Stitch(settings.stitch_client_id, settings.stitch_redirect_uri)
-    url, verifier = stitch.get_auth_url()
-    code = input("Code:")
-    token = stitch.get_token(settings.stitch_client_certificate, code)
-    accounts = stitch.getAccountsAndBalances
+    if args.token is None:
+        url, verifier = stitch.get_auth_url()
+        code = input("Code:")
+        token = stitch.get_token(settings.stitch_client_certificate, code)
+    else:
+        token = args.token
+        stitch.setToken(token)
+        logging.debug("Token: " + token)
+    accounts = stitch.getAccountsAndBalances()
     logger.info("Accounts: " + str(accounts))
 
 if __name__ == "__main__":
