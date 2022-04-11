@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Callback</title>
+</head>
+<body>
+    <h1>Stitch callback parameters</h1>
+    <div id="params"></div>
+    <p>Copy and paste the "code" parameter back into the python shell.</p>
+    <!--Show a list of parameters passed by URL using javasript-->
+    <script>
+        var url = window.location.href;
+        var params = url.split('?')[1].split('&');
+        var data = {};
+        params.forEach(function(param) {
+            var key = param.split('=')[0];
+            var value = param.split('=')[1];
+            data[key] = value;
+        });
+        var paramsField = document.getElementById('params');
+        var paramsList = document.createElement('ul');
+        for (var key in data) {
+            var item = document.createElement('li');
+            item.innerHTML = key + ': ' + data[key];
+            paramsList.appendChild(item);
+        }
+        paramsField.appendChild(paramsList);
+        console.log(data);
+    </script>
+</body>
+</html>
