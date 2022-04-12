@@ -4,8 +4,8 @@ from settings import settings
 import os
 import logging
 import urllib
-#import jwt
-from authlib.jose import jwt
+import jwt
+#from authlib.jose import jwt
 import time
 import uuid
 import requests
@@ -99,8 +99,8 @@ class Stitch:
             'iat': now,
             'nbf': now,
             'jti': str(uuid.uuid4())
-        }, key=secret, header = {'alg': 'RS256'})#algorithm='HS256')
-        logger.debug("JWT token: " + jwt_token.decode("utf-8"))
+        }, key=secret, algorithm='RS256')
+        logger.debug("JWT token: " + jwt_token)
         return jwt_token
     
     def decode_jwt(self, jwt_token):
@@ -127,7 +127,7 @@ class Stitch:
             'redirect_uri': self.redirect_uri,
             'code_verifier': self.code_verifier,
             'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-            'client_assertion': jwt_token.decode("utf-8")
+            'client_assertion': jwt_token
         }
         response = requests.post(self.token_url, headers=headers, data=data)
         logger.debug("Token response: " + response.text)
