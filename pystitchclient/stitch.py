@@ -98,7 +98,7 @@ class Stitch:
         logger.debug("Decoded JWT token: " + str(decoded_token))
         return decoded_token
 
-    def get_token(self, client_certificate, auth_code):
+    def get_access_token(self, client_certificate, auth_code):
         # Generate a JWT token
         jwt_token = self.generate_jwt(client_certificate)
 
@@ -195,7 +195,7 @@ def main():
         print("You will be directed to the following URL to get the auth code: " + url)
         webbrowser.open(url, new=0, autoraise=True)
         code = input("Code:")
-        token = stitch.get_token(settings.stitch_client_certificate, code)
+        token = stitch.get_access_token(settings.stitch_client_certificate, code)
     else:
         token = args.token
         stitch.setToken(token)
