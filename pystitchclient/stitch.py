@@ -42,25 +42,13 @@ class Stitch:
         self.token_url = "https://secure.stitch.money/connect/token"
         self.code_challenge = None
         self.code_verifier = None
-        self.token = None
+        self.access_token = None
         self.id_token = None
         self.refresh_token = None
         self.token_expires_at = None
         self.scope_granted = None
-    
-    def getState(self):
-        return self.state
-    
-    def getNonce(self):
-        return self.nonce
 
-    def getVerifier(self):
-        return self.code_verifier
-    
-    def setToken(self, token):
-        self.token = token
-
-    def generateVerifierChallengePair(self):
+    def generate_verifier_challenge_pair(self):
         verifier = self.generate_random_string(32)
         logger.debug("Verifier: " + verifier.decode("utf-8"))
         code_challenge = base64.urlsafe_b64encode(sha256(verifier).digest()).strip(b"=").replace(b"+", b"-").replace(b"/", b"_")
@@ -73,7 +61,7 @@ class Stitch:
 
     def get_auth_url(self):
         logger.debug("Generating auth URL")
-        self.code_verifier, self.code_challenge = self.generateVerifierChallengePair()
+        self.code_verifier, self.code_challenge = self.generate_verifier_challenge_pair()
         full_auth_url = self.auth_url + "?client_id=" + self.client_id + "&scope=" + \
             urllib.parse.quote(self.scope) + "&response_type=" + self.response_type + \
                 "&redirect_uri=" + urllib.parse.quote_plus(self.redirect_uri) + "&state=" + self.state + \
@@ -131,14 +119,14 @@ class Stitch:
         response = requests.post(self.token_url, headers=headers, data=data)
         logger.debug("Token response: " + response.text)
         if response.status_code == 200:
-            self.token = response.json()["access_token"]
+            self.access_token = response.json()["access_token"]
             self.refresh_token = response.json()["refresh_token"]
             self.id_token = response.json()["id_token"]
             # Calculate the actual token expiration time
             self.token_expires_at = datetime.now() + timedelta(seconds=int(response.json()["expires_in"]))
             self.scope_granted = response.json()["scope"]
-            logger.debug("Token: " + self.token)
-            return self.token
+            logger.debug("Token: " + self.access_token)
+            return self.access_token
         else:
             logger.error("Error getting token: " + response.text)
             return None
