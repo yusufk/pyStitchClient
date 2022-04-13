@@ -5,7 +5,6 @@ import os
 import logging
 import urllib
 import jwt
-#from authlib.jose import jwt
 import time
 import uuid
 import requests
@@ -111,7 +110,7 @@ class Stitch:
         logger.debug("Decoded JWT token: " + str(decoded_token))
         return decoded_token
 
-    def get_token(self, client_certificate, code):
+    def get_token(self, client_certificate, auth_code):
         # Generate a JWT token
         jwt_token = self.generate_jwt(client_certificate)
 
@@ -123,7 +122,7 @@ class Stitch:
         data = {
             'grant_type': 'authorization_code',
             'client_id': self.client_id,
-            'code': code,
+            'code': auth_code,
             'redirect_uri': self.redirect_uri,
             'code_verifier': self.code_verifier,
             'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
@@ -144,7 +143,7 @@ class Stitch:
             logger.error("Error getting token: " + response.text)
             return None
 
-    def getAccountsAndBalances(self):
+    def get_accounts_balances(self, access_token=None):
         query =  """query ListBankAccounts {
                         user {
                             bankAccounts {
@@ -162,25 +161,27 @@ class Stitch:
                             }
                         }
                     }"""
-        return self.runGraphQLQuery(query)
+        return self.run_graphQL_query(query, access_token=None)
 
-    def runGraphQLQuery(self, query):
-        if self.token is None:
-            logger.error("No token available")
-            return None
-        else:
-            logger.debug("Getting bank accounts")
-            headers = {
-                'Authorization': 'Bearer ' + self.token,
-                'Content-Type': 'application/json'
-            }
-            # Call graphql endpoint
-            response = requests.post("https://api.stitch.money/graphql", headers=headers, json={"query": query})
-            if response.status_code == 200:
-                return response.json()
-            else:
-                logger.error("Error getting bank accounts: " + response.text)
+    def run_graphQL_query(self, query, access_token=None):
+        if self.access_token is None:
+            logger.debug("No topen provided, checking if one was fetched already.")
+            access_token = self.access_token
+            if (access_token is None):
+                logger.error("No access token available")
                 return None
+        logging.debug("Access token available, getting bank accounts")
+        headers = {
+            'Authorization': 'Bearer ' + self.access_token,
+            'Content-Type': 'application/json'
+        }
+        # Call graphql endpoint
+        response = requests.post("https://api.stitch.money/graphql", headers=headers, json={"query": query})
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logging.error("Error getting bank accounts: " + response.text)
+            return None
        
 def main():
     arg_names = ['command','token']
@@ -212,7 +213,7 @@ def main():
         stitch.setToken(token)
         logger.debug("Token: " + token)
         logger.debug("JWT unpacked:" + stitch.decode_jwt(stitch.id_token))
-    accounts = stitch.getAccountsAndBalances()
+    accounts = stitch.get_accounts_balances()
     logger.info("Accounts: " + str(accounts))
 
 if __name__ == "__main__":
