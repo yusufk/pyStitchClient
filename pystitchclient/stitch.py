@@ -98,7 +98,7 @@ class Stitch:
         logger.debug("Decoded JWT token: " + str(decoded_token))
         return decoded_token
 
-    def get_access_token(self, client_certificate, auth_code):
+    def fetch_access_token(self, client_certificate, auth_code):
         # Generate a JWT token
         jwt_token = self.generate_jwt(client_certificate)
 
@@ -130,6 +130,16 @@ class Stitch:
         else:
             logger.error("Error getting token: " + response.text)
             return None
+
+    @property
+    def token(self):
+        """Get the access token."""
+        return self.access_token
+        
+    @token.setter
+    def token(self, value):
+        """Set the access token."""
+        self.access_token = value
 
     def get_accounts_balances(self, access_token=None):
         query =  """query ListBankAccounts {
@@ -183,7 +193,7 @@ def main():
     # Keep the web server quiet - comment out if you want to see the requests
     Handler.log_message = lambda a, b, c, d, e: None
     httpd = socketserver.TCPServer(("", PORT), Handler)
-    logger.info("serving at port", PORT)
+    logger.info(f"serving at port {PORT}")
     thread = threading.Thread(target=httpd.serve_forever)
     thread.daemon = True
     thread.start()
@@ -195,12 +205,12 @@ def main():
         print("You will be directed to the following URL to get the auth code: " + url)
         webbrowser.open(url, new=0, autoraise=True)
         code = input("Code:")
-        token = stitch.get_access_token(settings.stitch_client_certificate, code)
+        token = stitch.fetch_access_token(settings.stitch_client_certificate, code)
     else:
         token = args.token
-        stitch.setToken(token)
+        stitch.token = token
         logger.debug("Token: " + token)
-        logger.debug("JWT unpacked:" + stitch.decode_jwt(stitch.id_token))
+        logger.debug("JWT unpacked:" + str(stitch.decode_jwt(stitch.id_token)))
     accounts = stitch.get_accounts_balances()
     logger.info("Accounts: " + str(accounts))
 

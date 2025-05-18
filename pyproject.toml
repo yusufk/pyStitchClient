@@ -1,19 +1,23 @@
-[tool.poetry]
+[project]
 name = "pyStitchClient"
 version = "0.1.0"
 description = ""
-authors = ["Yusuf Kaka <yusuf.kaka@mtn.com>"]
+authors = [{ name = "Yusuf Kaka", email = "yusufk@gmail.com" }]
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=1.9.0,<2.0.0",
+    "python-dotenv>=0.19.0",
+    "requests>=2.27.1",
+    "PyJWT>=2.3.0",
+    "cryptography>=36.0.2",
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-pydantic = {extras = ["dotenv"], version = "^1.9.0"}
-requests = "^2.27.1"
-PyJWT = "^2.3.0"
-cryptography = "^36.0.2"
+[project.optional-dependencies]
+dev = ["pytest>=5.2"]
 
-[tool.poetry.dev-dependencies]
-pytest = "^5.2"
+[tool.uv]
+package = false
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
